@@ -12,7 +12,14 @@ public interface CityDao {
 
     City findById(int id);
 
+    //Way 1 of creating
     boolean createNewCity(City city);
+
+    //Way 2 of creating
+    public City createNewCity_ReturnsCity(City city);
+
+    //Way 3 of creating
+    public City createCity(City city);
 
     City updateCity(City city);
 

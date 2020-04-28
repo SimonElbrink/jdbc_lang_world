@@ -5,9 +5,12 @@ import org.example.model.City;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ResourceBundle;
+
+import static org.example.dao.Database.getConnection;
 
 public class CityDaoImpl implements CityDao {
+
+    DatabaseConnection db = DatabaseConnection.getInstance();
 
     private static final String CONNECTION_STRING = "jdbc:mysql://localhost:3306/world?&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Berlin";
     private static final String USER_NAME = "root";
@@ -82,7 +85,7 @@ public class CityDaoImpl implements CityDao {
 
         try {
 
-            connection = DriverManager.getConnection(CONNECTION_STRING, USER_NAME, USER_PASSWORD);
+            connection = db.getConnection();
 
             preparedStatement = connection.prepareStatement(GET_ALL_FROM_DISTRICT);
 
@@ -134,7 +137,7 @@ public class CityDaoImpl implements CityDao {
         ResultSet resultSet = null;
 
         try{
-            connection = DriverManager.getConnection(CONNECTION_STRING,USER_NAME,USER_PASSWORD);
+            connection = getConnection();
             preparedStatement = connection.prepareStatement("SELECT * FROM city WHERE ID = ?");
             preparedStatement.setInt(1, id);
             resultSet = preparedStatement.executeQuery();
@@ -214,6 +217,105 @@ public class CityDaoImpl implements CityDao {
 
         return successfullyCreated;
     }
+
+
+    public City createNewCity_ReturnsCity(City city){
+
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        try{
+            connection = getConnection();
+            preparedStatement = connection.prepareStatement(CREATE_CITY, Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setString(1, city.getName());
+            preparedStatement.setString(2, city.getCountryCode());
+            preparedStatement.setString(3, city.getDistrict());
+            preparedStatement.setInt(4, city.getPopulation());
+            preparedStatement.execute();
+
+            resultSet = preparedStatement.getGeneratedKeys();
+
+            if(resultSet.next()){
+                city = new City(
+                        resultSet.getInt(1),
+                                city.getName(),
+                                city.getCountryCode(),
+                                city.getDistrict(),
+                                city.getPopulation()
+                );
+            }
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        } finally {
+            try{
+                if (resultSet != null){
+                    resultSet.close();
+                }
+                if(preparedStatement != null){
+                    preparedStatement.close();
+                }
+                if (connection != null) {
+                    connection.close();
+                }
+
+            }catch (SQLException e){
+                e.printStackTrace();
+            }
+
+        }
+
+        return city;
+    }
+
+    public City createCity(City city){
+
+        int id = 0;
+
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        try{
+            connection = getConnection();
+            preparedStatement = connection.prepareStatement(CREATE_CITY, Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setString(1, city.getName());
+            preparedStatement.setString(2, city.getCountryCode());
+            preparedStatement.setString(3, city.getDistrict());
+            preparedStatement.setInt(4, city.getPopulation());
+            preparedStatement.execute();
+
+            resultSet = preparedStatement.getGeneratedKeys();
+
+            if (resultSet.next()){
+                id = resultSet.getInt(1);
+            }
+
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        } finally {
+            try{
+                if (resultSet != null){
+                    resultSet.close();
+                }
+                if(preparedStatement != null){
+                    preparedStatement.close();
+                }
+                if (connection != null) {
+                    connection.close();
+                }
+
+            }catch (SQLException e){
+                e.printStackTrace();
+            }
+
+        }
+
+        return id == 0 ? null: findById(id);
+    }
+
 
     private PreparedStatement createPreparedStatement_update(Connection connection, City city) throws SQLException {
         // UPDATE city SET Name = ?, CountryCode = ?, District = ?, Population = ? WHERE ID = ?
